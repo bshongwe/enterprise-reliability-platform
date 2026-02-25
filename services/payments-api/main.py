@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 from fastapi import FastAPI, HTTPException, Depends, Request
-from .models import PaymentRequest, PaymentResponse
-from .auth import get_api_key
-from .service import create_payment_record, get_payment_record
+from services.payments_api.models import PaymentRequest, PaymentResponse
+from common.auth import get_api_key
+from services.payments_api.service import create_payment_record, get_payment_record
 
 
 app = FastAPI(
