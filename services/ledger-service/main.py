@@ -76,7 +76,12 @@ class LedgerEntryResponse(BaseModel):
 def health_check():
     return {"status": "ok"}
 
-@app.post("/entries", response_model=LedgerEntryResponse, dependencies=[Depends(get_api_key)])
+@app.post(
+    "/entries",
+    response_model=LedgerEntryResponse,
+    dependencies=[Depends(get_api_key)],
+    responses={500: {"description": "Internal server error"}}
+)
 def create_ledger_entry(entry: LedgerEntryCreate, request: Request):
     db = SessionLocal()
     try:
@@ -99,7 +104,10 @@ def create_ledger_entry(entry: LedgerEntryCreate, request: Request):
 @app.get(
     "/entries/{payment_id}",
     response_model=List[LedgerEntryResponse],
-    responses={404: {"description": "No ledger entries found for this payment_id"}},
+    responses={
+        404: {"description": "No ledger entries found for this payment_id"},
+        500: {"description": "Internal server error"}
+    },
     dependencies=[Depends(get_api_key)]
 )
 def get_entries_by_payment(payment_id: str, request: Request):
