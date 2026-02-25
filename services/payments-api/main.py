@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI, HTTPException, Depends, Request
-from services.payments_api.models import PaymentRequest, PaymentResponse
+from fastapi import FastAPI, HTTPException, Depends
+from services.payments_api.models import (
+    PaymentRequest,
+    PaymentResponse
+)
 from common.auth import get_api_key
-from services.payments_api.service import create_payment_record, get_payment_record
+from services.payments_api.service import (
+    create_payment_record,
+    get_payment_record
+)
 
 
 app = FastAPI(
@@ -21,10 +27,15 @@ def health_check():
     dependencies=[Depends(get_api_key)],
     responses={500: {"description": "Internal server error"}}
 )
-def create_payment(payment: PaymentRequest, request: Request):
-    user = request.headers.get('X-API-Key', '?')
+def create_payment(
+    payment: PaymentRequest,
+    user_id: str = Depends(get_api_key)
+):
     try:
-        payment_id, status, message = create_payment_record(payment, user)
+        payment_id, status, message = create_payment_record(
+            payment,
+            user_id
+        )
         return PaymentResponse(
             payment_id=payment_id,
             status=status,
@@ -45,10 +56,12 @@ def create_payment(payment: PaymentRequest, request: Request):
     },
     dependencies=[Depends(get_api_key)]
 )
-def get_payment(payment_id: str, request: Request):
-    user = request.headers.get('X-API-Key', '?')
+def get_payment(
+    payment_id: str,
+    user_id: str = Depends(get_api_key)
+):
     try:
-        payment = get_payment_record(payment_id, user)
+        payment = get_payment_record(payment_id, user_id)
         if not payment:
             raise HTTPException(
                 status_code=404,

@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-from fastapi import FastAPI, HTTPException, Depends, Request
+
+from fastapi import FastAPI, HTTPException, Depends
 from typing import List
-from services.ledger_service.models import LedgerEntryCreate, LedgerEntryResponse
+from services.ledger_service.models import (
+    LedgerEntryCreate,
+    LedgerEntryResponse
+)
 from common.auth import get_api_key
-from services.ledger_service.service import create_ledger_entry, get_entries_by_payment
+from services.ledger_service.service import (
+    create_ledger_entry,
+    get_entries_by_payment
+)
 
 app = FastAPI(
     title="Ledger Service",
@@ -20,10 +27,12 @@ def health_check():
     dependencies=[Depends(get_api_key)],
     responses={500: {"description": "Internal server error"}}
 )
-def create_ledger_entry_endpoint(entry: LedgerEntryCreate, request: Request):
-    user = request.headers.get('X-API-Key', '?')
+def create_ledger_entry_endpoint(
+    entry: LedgerEntryCreate,
+    user_id: str = Depends(get_api_key)
+):
     try:
-        db_entry = create_ledger_entry(entry, user)
+        db_entry = create_ledger_entry(entry, user_id)
         return db_entry
     except Exception:
         raise HTTPException(
@@ -35,15 +44,19 @@ def create_ledger_entry_endpoint(entry: LedgerEntryCreate, request: Request):
     "/entries/{payment_id}",
     response_model=List[LedgerEntryResponse],
     responses={
-        404: {"description": "No ledger entries found for this payment_id"},
+        404: {
+            "description": "No ledger entries found for this payment_id"
+        },
         500: {"description": "Internal server error"}
     },
     dependencies=[Depends(get_api_key)]
 )
-def get_entries_by_payment_endpoint(payment_id: str, request: Request):
-    user = request.headers.get('X-API-Key', '?')
+def get_entries_by_payment_endpoint(
+    payment_id: str,
+    user_id: str = Depends(get_api_key)
+):
     try:
-        entries = get_entries_by_payment(payment_id, user)
+        entries = get_entries_by_payment(payment_id, user_id)
         if not entries:
             raise HTTPException(
                 status_code=404,

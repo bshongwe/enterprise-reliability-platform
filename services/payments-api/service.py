@@ -1,9 +1,10 @@
+import os
 import httpx
 from services.payments_api.models import PaymentRequest
 from common.audit import audit_log
 
-LEDGER_URL = "http://localhost:8001"
-API_KEY = "supersecretkey"  # Should match auth.py
+LEDGER_URL = os.getenv("LEDGER_URL", "http://localhost:8001")
+API_KEY = os.getenv("API_KEY", "")
 
 payments_db = {}
 

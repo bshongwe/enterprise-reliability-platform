@@ -1,10 +1,15 @@
+import os
 from fastapi import HTTPException, Depends
 from fastapi.security.api_key import APIKeyHeader
+import hashlib
 
-API_KEY = "supersecretkey"  # Set securely in prod
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+API_KEY = os.getenv("API_KEY", "")
+api_key_header = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False
+)
 
 def get_api_key(api_key: str = Depends(api_key_header)):
-    if api_key != API_KEY:
+    if not API_KEY or api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return api_key
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]

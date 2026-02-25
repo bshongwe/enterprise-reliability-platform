@@ -30,8 +30,6 @@ Base.metadata.create_all(bind=engine)
 def create_ledger_entry(entry: LedgerEntryCreate, user: str):
     db = SessionLocal()
     try:
-        LedgerEntryCreate.amount_positive(entry.amount)
-        LedgerEntryCreate.currency_allowed(entry.currency)
         db_entry = LedgerEntry(**entry.dict())
         db.add(db_entry)
         db.commit()
