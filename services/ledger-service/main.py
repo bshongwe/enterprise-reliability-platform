@@ -58,7 +58,11 @@ def create_ledger_entry(entry: LedgerEntryCreate):
     db.close()
     return db_entry
 
-@app.get("/entries/{payment_id}", response_model=List[LedgerEntryResponse])
+@app.get(
+    "/entries/{payment_id}",
+    response_model=List[LedgerEntryResponse],
+    responses={404: {"description": "No ledger entries found for this payment_id"}}
+)
 def get_entries_by_payment(payment_id: str):
     db = SessionLocal()
     entries = db.query(LedgerEntry).filter(LedgerEntry.payment_id == payment_id).all()
