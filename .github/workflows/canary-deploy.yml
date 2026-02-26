@@ -94,8 +94,12 @@ jobs:
           TAG="${{ github.sha }}"
           IMAGE="ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG}"
           
+          # Convert service name to directory name
+          SERVICE_DIR=$(echo $SERVICE | tr '-' '_')
+          
           echo "Building Docker image: ${IMAGE}"
-          docker build -t ${IMAGE} -f services/${SERVICE}/Dockerfile .
+          docker build -t ${IMAGE} \
+            -f services/${SERVICE_DIR}/Dockerfile .
           
           echo "Pushing image to GitHub Container Registry..."
           docker push ${IMAGE}

@@ -23,7 +23,7 @@ services:
   payments-api:
     build:
       context: .
-      dockerfile: services/payments-api/Dockerfile
+      dockerfile: services/payments_api/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -33,7 +33,7 @@ services:
   ledger-service:
     build:
       context: .
-      dockerfile: services/ledger-service/Dockerfile
+      dockerfile: services/ledger_service/Dockerfile
     ports:
       - "8001:8001"
     environment:
