@@ -5,14 +5,17 @@ from common.audit import audit_log
 from common.metrics import http_requests_total
 
 def test_audit_log():
-    audit_log("user1", "test_action", "entity1", "success")
-    assert True
+    result = audit_log("user1", "test_action", "entity1", "success")
+    assert result is not None
 
 def test_metrics_counter():
-    http_requests_total.labels(
+    metric = http_requests_total.labels(
         service="test",
         method="GET",
         endpoint="/test",
         status="success"
-    ).inc()
-    assert True
+    )
+    before = metric._value.get()
+    metric.inc()
+    after = metric._value.get()
+    assert after == before + 1
