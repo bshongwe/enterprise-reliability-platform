@@ -15,9 +15,10 @@ sys.path.insert(0, str(payments_dir))
 
 # Load module with hyphenated name
 payments_path = payments_dir / 'main.py'
-spec = importlib.util.spec_from_file_location('payments_api_main', payments_path)
+spec = importlib.util.spec_from_file_location('__main__', payments_path, submodule_search_locations=[str(payments_dir)])
 payments_module = importlib.util.module_from_spec(spec)
-sys.modules['payments_api_main'] = payments_module
+payments_module.__package__ = ''
+sys.modules['__main__'] = payments_module
 spec.loader.exec_module(payments_module)
 app = payments_module.app
 
