@@ -1,0 +1,68 @@
+name: CI - Build and Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        run: |
+          pytest --cov=services --cov=common
+
+      - name: Lint
+        run: |
+          pip install flake8
+          flake8 services/ common/ --max-line-length=80
+
+  check-error-budget:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Check Error Budget
+        id: error_budget
+        run: |
+          if [ -z "${{ secrets.PROMETHEUS_URL }}" ]; then
+            echo "PROMETHEUS_URL not configured, skipping check"
+            exit 0
+          fi
+          
+          PROM_URL="${{ secrets.PROMETHEUS_URL }}"
+          SERVICE="${{ github.event.repository.name }}"
+          
+          QUERY="1 - (sum(rate(http_requests_total{service=\"${SERVICE}\",status=\"success\"}[1h])) / sum(rate(http_requests_total{service=\"${SERVICE}\"}[1h])))"
+          
+          BURN_RATE=$(curl -s "${PROM_URL}/api/v1/query?query=${QUERY}" | jq -r '.data.result[0].value[1]')
+          
+          if (( $(echo "$BURN_RATE > 0.00072" | bc -l) )); then
+            echo "ERROR: Burning >50% error budget in 24h"
+            echo "Current burn rate: $BURN_RATE"
+            exit 1
+          fi
+          
+          echo "Error budget OK: $BURN_RATE"
+
+      - name: Block deployment on budget breach
+        if: failure()
+        run: |
+          echo "::error::Deployment blocked due to error budget breach"
+          exit 1
