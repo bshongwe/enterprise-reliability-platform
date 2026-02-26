@@ -1,7 +1,7 @@
 import os
 from fastapi import HTTPException, Depends
 from fastapi.security.api_key import APIKeyHeader
-import hashlib
+from passlib.context import CryptContext
 
 API_KEY = os.getenv("API_KEY", "")
 api_key_header = APIKeyHeader(
@@ -9,11 +9,11 @@ api_key_header = APIKeyHeader(
     auto_error=False
 )
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def get_api_key(api_key: str = Depends(api_key_header)):
     if not API_KEY or api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
     # Return a sanitized identifier for logging/audit purposes
-    # Note: This is not password hashing - it's for creating a
-    # user identifier
-    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
+    return pwd_context.hash(api_key)[:16]
