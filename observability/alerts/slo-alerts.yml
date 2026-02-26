@@ -1,0 +1,85 @@
+groups:
+  - name: slo_alerts
+    interval: 1m
+    rules:
+      # Payments API SLO: 99.95% success rate
+      - alert: PaymentsErrorBudgetBurn
+        expr: |
+          (
+            sum(rate(http_requests_total{service="payments",status="success"}[24h]))
+            /
+            sum(rate(http_requests_total{service="payments"}[24h]))
+          ) < 0.9995
+        for: 5m
+        labels:
+          severity: critical
+          service: payments
+        annotations:
+          summary: "Payments API SLO breach"
+          description: "Success rate {{ $value }} below 99.95% SLO"
+
+      - alert: PaymentsErrorBudgetBurnRate
+        expr: |
+          (
+            1 - (
+              sum(rate(http_requests_total{service="payments",status="success"}[1h]))
+              /
+              sum(rate(http_requests_total{service="payments"}[1h]))
+            )
+          ) > 0.0005 * 14.4
+        for: 10m
+        labels:
+          severity: critical
+          service: payments
+          action: freeze_deployments
+        annotations:
+          summary: "Payments burning >50% error budget in 24h"
+          description: "Freeze deployments immediately"
+
+      # Ledger Service SLO: 99.99% write success
+      - alert: LedgerWriteFailure
+        expr: |
+          (
+            sum(rate(db_operations_total{service="ledger",operation="write",status="success"}[5m]))
+            /
+            sum(rate(db_operations_total{service="ledger",operation="write"}[5m]))
+          ) < 0.9999
+        for: 1m
+        labels:
+          severity: critical
+          service: ledger
+        annotations:
+          summary: "Ledger write SLO breach"
+          description: "Write success rate {{ $value }} below 99.99%"
+
+      - alert: LedgerErrorBudgetCritical
+        expr: |
+          (
+            1 - (
+              sum(rate(db_operations_total{service="ledger",operation="write",status="success"}[1h]))
+              /
+              sum(rate(db_operations_total{service="ledger",operation="write"}[1h]))
+            )
+          ) > 0.0001 * 14.4
+        for: 5m
+        labels:
+          severity: critical
+          service: ledger
+          action: freeze_deployments
+        annotations:
+          summary: "Ledger burning >50% error budget in 24h"
+          description: "Immediate investigation required"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status="error"}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate {{ $value }} exceeds 5%"
