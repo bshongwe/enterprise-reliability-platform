@@ -9,8 +9,12 @@ os.environ['API_KEY'] = 'test-key'
 import importlib.util
 from pathlib import Path
 
+# Add ledger-service directory to path for relative imports
+ledger_dir = Path(__file__).parent.parent / 'services' / 'ledger-service'
+sys.path.insert(0, str(ledger_dir))
+
 # Load module with hyphenated name
-ledger_path = Path(__file__).parent.parent / 'services' / 'ledger-service' / 'main.py'
+ledger_path = ledger_dir / 'main.py'
 spec = importlib.util.spec_from_file_location('ledger_service_main', ledger_path)
 ledger_module = importlib.util.module_from_spec(spec)
 sys.modules['ledger_service_main'] = ledger_module

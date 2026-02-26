@@ -9,8 +9,12 @@ os.environ['API_KEY'] = 'test-key'
 import importlib.util
 from pathlib import Path
 
+# Add payments-api directory to path for relative imports
+payments_dir = Path(__file__).parent.parent / 'services' / 'payments-api'
+sys.path.insert(0, str(payments_dir))
+
 # Load module with hyphenated name
-payments_path = Path(__file__).parent.parent / 'services' / 'payments-api' / 'main.py'
+payments_path = payments_dir / 'main.py'
 spec = importlib.util.spec_from_file_location('payments_api_main', payments_path)
 payments_module = importlib.util.module_from_spec(spec)
 sys.modules['payments_api_main'] = payments_module
