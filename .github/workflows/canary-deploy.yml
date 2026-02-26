@@ -12,6 +12,7 @@ on:
         options:
           - payments-api
           - ledger-service
+          - account-service
       deployment_type:
         description: 'Deployment type'
         required: true
@@ -137,6 +138,8 @@ jobs:
               SERVICE="payments-api"
             elif echo "$CHANGED" | grep -q "services/ledger_service/"; then
               SERVICE="ledger-service"
+            elif echo "$CHANGED" | grep -q "services/account_service/"; then
+              SERVICE="account-service"
             else
               SERVICE=""
             fi

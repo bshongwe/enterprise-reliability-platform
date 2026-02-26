@@ -11,6 +11,7 @@ PROMETHEUS_URL = os.getenv(
 SLO_TARGETS = {
     "payments": 0.9995,
     "ledger": 0.9999,
+    "account-service": 0.999,
 }
 
 def query_prometheus(query):
