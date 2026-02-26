@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from fastapi import FastAPI, HTTPException, Depends
-from typing import List
+from typing import List, Annotated
 from services.ledger_service.models import (
     LedgerEntryCreate,
     LedgerEntryResponse
@@ -29,7 +29,7 @@ def health_check():
 )
 def create_ledger_entry_endpoint(
     entry: LedgerEntryCreate,
-    user_id: str = Depends(get_api_key)
+    user_id: Annotated[str, Depends(get_api_key)]
 ):
     try:
         db_entry = create_ledger_entry(entry, user_id)
@@ -53,7 +53,7 @@ def create_ledger_entry_endpoint(
 )
 def get_entries_by_payment_endpoint(
     payment_id: str,
-    user_id: str = Depends(get_api_key)
+    user_id: Annotated[str, Depends(get_api_key)]
 ):
     try:
         entries = get_entries_by_payment(payment_id, user_id)

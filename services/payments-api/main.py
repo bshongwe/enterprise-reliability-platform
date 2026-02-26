@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from fastapi import FastAPI, HTTPException, Depends
+from typing import Annotated
 from services.payments_api.models import (
     PaymentRequest,
     PaymentResponse
@@ -29,7 +30,7 @@ def health_check():
 )
 def create_payment(
     payment: PaymentRequest,
-    user_id: str = Depends(get_api_key)
+    user_id: Annotated[str, Depends(get_api_key)]
 ):
     try:
         payment_id, status, message = create_payment_record(
@@ -58,7 +59,7 @@ def create_payment(
 )
 def get_payment(
     payment_id: str,
-    user_id: str = Depends(get_api_key)
+    user_id: Annotated[str, Depends(get_api_key)]
 ):
     try:
         payment = get_payment_record(payment_id, user_id)
