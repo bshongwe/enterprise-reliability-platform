@@ -9,11 +9,14 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import datetime
+import os
 from services.ledger_service.models import LedgerEntryCreate
 from common.audit import audit_log
 from common.metrics import db_operations_total
 
-DATABASE_URL = "sqlite:///./ledger.db"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "sqlite:///./ledger.db"
+)
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
 )

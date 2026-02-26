@@ -4,7 +4,9 @@ import sys
 import requests
 from datetime import datetime, timedelta
 
-PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
+PROMETHEUS_URL = os.getenv(
+    "PROMETHEUS_URL", "http://localhost:9090"
+)
 
 SLO_TARGETS = {
     "payments": 0.9995,
@@ -18,12 +20,26 @@ def query_prometheus(query):
     )
     result = response.json()
     if result["status"] == "success" and result["data"]["result"]:
-        return float(result["data"]["result"][0]["value"][1])
+        value = result["data"]["result"][0]["value"][1]
+        # Validate against NaN injection
+        if value in ("nan", "NaN", "NAN", "inf", "-inf"):
+            return None
+        try:
+            float_value = float(value)
+            # Check if the result is actually NaN or infinite
+            if (float_value != float_value or
+                    float_value == float('inf') or
+                    float_value == float('-inf')):
+                return None
+            return float_value
+        except (ValueError, TypeError):
+            return None
     return None
 
 def calculate_error_budget(service, slo_target):
     query = f"""
-    sum(rate(http_requests_total{{service="{service}",status="success"}}[30d]))
+    sum(rate(http_requests_total{{
+        service="{service}",status="success"}}[30d]))
     /
     sum(rate(http_requests_total{{service="{service}"}}[30d]))
     """
@@ -58,12 +74,15 @@ def main():
             print(f"Service: {result['service']}")
             print(f"  SLO Target: {result['slo_target']:.2f}%")
             print(f"  Success Rate: {result['success_rate']:.4f}%")
-            print(f"  Error Budget Remaining: {result['error_budget_remaining']:.2f}%")
+            print(
+                f"  Error Budget Remaining: "
+                f"{result['error_budget_remaining']:.2f}%"
+            )
             print(f"  Status: {result['status']}")
             print()
             
             if result['error_budget_remaining'] < 10:
-                print(f"  ⚠️  WARNING: Low error budget!")
+                print("  ⚠️  WARNING: Low error budget!")
                 sys.exit(1)
 
 if __name__ == "__main__":
