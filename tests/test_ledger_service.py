@@ -7,6 +7,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 os.environ['API_KEY'] = 'test-key'
 
 from services.ledger_service.main import app
+import importlib.util
+import sys
+from pathlib import Path
+
+# Load module with hyphenated name
+ledger_path = Path(__file__).parent.parent / 'services' / 'ledger-service' / 'main.py'
+spec = importlib.util.spec_from_file_location('ledger_service_main', ledger_path)
+ledger_module = importlib.util.module_from_spec(spec)
+sys.modules['ledger_service_main'] = ledger_module
+spec.loader.exec_module(ledger_module)
+app = ledger_module.app
 
 client = TestClient(app)
 
