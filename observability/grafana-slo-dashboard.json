@@ -1,0 +1,57 @@
+{
+  "dashboard": {
+    "title": "SLO Dashboard - Enterprise Reliability Platform",
+    "panels": [
+      {
+        "title": "Payments API - Success Rate (SLO: 99.95%)",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=\"payments\",status=\"success\"}[5m])) / sum(rate(http_requests_total{service=\"payments\"}[5m]))"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "title": "Ledger Service - Write Success (SLO: 99.99%)",
+        "targets": [
+          {
+            "expr": "sum(rate(db_operations_total{service=\"ledger\",operation=\"write\",status=\"success\"}[5m])) / sum(rate(db_operations_total{service=\"ledger\",operation=\"write\"}[5m]))"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "title": "Error Budget Remaining - Payments",
+        "targets": [
+          {
+            "expr": "1 - ((1 - (sum(rate(http_requests_total{service=\"payments\",status=\"success\"}[30d])) / sum(rate(http_requests_total{service=\"payments\"}[30d])))) / 0.0005)"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8}
+      },
+      {
+        "title": "Error Budget Remaining - Ledger",
+        "targets": [
+          {
+            "expr": "1 - ((1 - (sum(rate(db_operations_total{service=\"ledger\",operation=\"write\",status=\"success\"}[30d])) / sum(rate(db_operations_total{service=\"ledger\",operation=\"write\"}[30d])))) / 0.0001)"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 8}
+      },
+      {
+        "title": "Request Rate by Service",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (service)"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ]
+  }
+}
