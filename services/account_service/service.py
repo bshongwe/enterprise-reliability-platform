@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 import datetime
 import os
 import uuid
+from datetime import timezone
 from services.account_service.models import (
     AccountCreate,
     AccountStatus,
@@ -41,8 +42,12 @@ class Account(Base):
     currency = Column(String)
     balance = Column(Float, default=0.0)
     status = Column(SQLEnum(AccountStatus), default=AccountStatus.ACTIVE)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(
+        DateTime, default=lambda: datetime.datetime.now(timezone.utc)
+    )
+    updated_at = Column(
+        DateTime, default=lambda: datetime.datetime.now(timezone.utc)
+    )
 
 
 Base.metadata.create_all(bind=engine)
@@ -124,7 +129,7 @@ def update_balance(
                 raise ValueError("Insufficient funds")
             account.balance -= balance_update.amount
 
-        account.updated_at = datetime.datetime.utcnow()
+        account.updated_at = datetime.datetime.now(timezone.utc)
         db.commit()
         db.refresh(account)
         db_operations_total.labels(

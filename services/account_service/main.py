@@ -203,16 +203,19 @@ def update_account_endpoint(
             )
         # Update account status if provided
         if account_update.status:
-            from services.account_service.service import SessionLocal
+            from services.account_service.service import (
+                SessionLocal, Account
+            )
             db = SessionLocal()
             try:
-                db_account = db.query(
-                    type(account)
-                ).filter_by(account_id=account_id).first()
-                db_account.status = account_update.status
-                db.commit()
-                db.refresh(db_account)
-                account = db_account
+                db_account = db.query(Account).filter(
+                    Account.account_id == account_id
+                ).first()
+                if db_account:
+                    db_account.status = account_update.status
+                    db.commit()
+                    db.refresh(db_account)
+                    account = db_account
             finally:
                 db.close()
         return account
