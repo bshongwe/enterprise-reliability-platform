@@ -4,9 +4,11 @@ os.environ['API_KEY'] = 'test-key'
 from common.audit import audit_log
 from common.metrics import http_requests_total
 
+
 def test_audit_log():
     result = audit_log("user1", "test_action", "entity1", "success")
     assert result is not None
+
 
 def test_metrics_counter():
     metric = http_requests_total.labels(

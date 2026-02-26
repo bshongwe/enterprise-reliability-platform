@@ -8,11 +8,12 @@ from services.ledger_service.models import (
     LedgerEntryResponse
 )
 from common.auth import get_api_key
-from common.metrics import http_requests_total, db_operations_total
+from common.metrics import http_requests_total
 from services.ledger_service.service import (
     create_ledger_entry,
     get_entries_by_payment
 )
+
 
 app = FastAPI(
     title="Ledger Service",
@@ -22,9 +23,11 @@ app = FastAPI(
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
+
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
+
 
 @app.post(
     "/entries",
@@ -53,6 +56,7 @@ def create_ledger_entry_endpoint(
             endpoint="/entries",
             status=status
         ).inc()
+
 
 @app.get(
     "/entries/{payment_id}",

@@ -23,9 +23,11 @@ app = FastAPI(
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
+
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
+
 
 @app.post(
     "/payments",
@@ -61,6 +63,7 @@ def create_payment(
             endpoint="/payments",
             status=status
         ).inc()
+
 
 @app.get(
     "/payments/{payment_id}",

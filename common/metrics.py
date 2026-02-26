@@ -5,6 +5,7 @@ from functools import wraps
 
 logger = logging.getLogger(__name__)
 
+
 # Request metrics
 http_requests_total = Counter(
     'http_requests_total',
@@ -37,6 +38,7 @@ error_budget_remaining = Gauge(
     'Remaining error budget as ratio',
     ['service']
 )
+
 
 def track_request(service: str):
     def decorator(func):
