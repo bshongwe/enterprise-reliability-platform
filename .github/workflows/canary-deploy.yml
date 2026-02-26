@@ -50,37 +50,43 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        service: [payments-api, ledger-service]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Detect changed service
-        id: detect
+      - name: Check if service changed
+        id: check
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            SERVICE="${{ github.event.inputs.service }}"
-          else
-            CHANGED=$(git diff --name-only HEAD^ HEAD)
-            if echo "$CHANGED" | grep -q "services/payments_api/"; then
-              SERVICE="payments-api"
-            elif echo "$CHANGED" | grep -q "services/ledger_service/"; then
-              SERVICE="ledger-service"
-            else
-              SERVICE=""
-            fi
-          fi
+          SERVICE="${{ matrix.service }}"
+          SERVICE_DIR=$(echo $SERVICE | tr '-' '_')
           
-          if [ -n "$SERVICE" ]; then
-            echo "service=$SERVICE" >> $GITHUB_OUTPUT
-            echo "✅ Detected service to build: $SERVICE"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger - only build selected service
+            if [ "$SERVICE" = "${{ github.event.inputs.service }}" ]; then
+              echo "build=true" >> $GITHUB_OUTPUT
+              echo "✅ Building $SERVICE (manual trigger)"
+            else
+              echo "build=false" >> $GITHUB_OUTPUT
+              echo "⏭️ Skipping $SERVICE (not selected)"
+            fi
           else
-            echo "service=" >> $GITHUB_OUTPUT
-            echo "ℹ️ No service changes detected, skipping build"
+            # Auto trigger - check if service files changed
+            CHANGED=$(git diff --name-only HEAD^ HEAD)
+            if echo "$CHANGED" | grep -q "services/${SERVICE_DIR}/"; then
+              echo "build=true" >> $GITHUB_OUTPUT
+              echo "✅ Building $SERVICE (files changed)"
+            else
+              echo "build=false" >> $GITHUB_OUTPUT
+              echo "⏭️ Skipping $SERVICE (no changes)"
+            fi
           fi
 
       - name: Log in to GitHub Container Registry
-        if: steps.detect.outputs.service != ''
+        if: steps.check.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -88,9 +94,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        if: steps.detect.outputs.service != ''
+        if: steps.check.outputs.build == 'true'
         run: |
-          SERVICE="${{ steps.detect.outputs.service }}"
+          SERVICE="${{ matrix.service }}"
           TAG="${{ github.sha }}"
           IMAGE="ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG}"
           
@@ -110,6 +116,9 @@ jobs:
   update-manifests:
     needs: build-and-push
     runs-on: ubuntu-latest
+    outputs:
+      service: ${{ steps.detect.outputs.service }}
+      deployment_type: ${{ steps.detect.outputs.type }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -167,7 +176,7 @@ jobs:
 
   monitor-canary:
     needs: update-manifests
-    if: github.event.inputs.deployment_type == 'canary'
+    if: needs.update-manifests.outputs.deployment_type == 'canary'
     runs-on: ubuntu-latest
     steps:
       - name: Wait for canary deployment
@@ -176,7 +185,7 @@ jobs:
       - name: Check canary health
         id: health_check
         run: |
-          SERVICE="${{ github.event.inputs.service }}"
+          SERVICE="${{ needs.update-manifests.outputs.service }}"
           PROM_URL="${{ secrets.PROMETHEUS_URL }}"
           
           ERROR_RATE=$(curl -s "${PROM_URL}/api/v1/query?query=sum(rate(http_requests_total{service=\"${SERVICE}\",version=\"canary\",status=\"error\"}[5m]))/sum(rate(http_requests_total{service=\"${SERVICE}\",version=\"canary\"}[5m]))" | jq -r '.data.result[0].value[1]')
