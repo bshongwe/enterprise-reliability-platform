@@ -8,6 +8,7 @@ API_KEY = os.getenv("API_KEY", "")
 
 payments_db = {}
 
+
 def create_payment_record(payment: PaymentRequest, user: str):
     payment_id = f"pay_{len(payments_db)+1}"
     payments_db[payment_id] = {**payment.dict(), "status": "PENDING"}
@@ -40,6 +41,7 @@ def create_payment_record(payment: PaymentRequest, user: str):
             f"error={type(e).__name__}"
         )
         raise
+
 
 def get_payment_record(payment_id: str, user: str):
     payment = payments_db.get(payment_id)

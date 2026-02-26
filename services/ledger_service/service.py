@@ -22,6 +22,7 @@ SessionLocal = sessionmaker(
 )
 Base = declarative_base()
 
+
 class LedgerEntry(Base):
     __tablename__ = "ledger_entries"
     id = Column(Integer, primary_key=True, index=True)
@@ -34,6 +35,7 @@ class LedgerEntry(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
+
 
 def create_ledger_entry(entry: LedgerEntryCreate, user: str):
     db = SessionLocal()
@@ -63,6 +65,7 @@ def create_ledger_entry(entry: LedgerEntryCreate, user: str):
         raise
     finally:
         db.close()
+
 
 def get_entries_by_payment(payment_id: str, user: str):
     db = SessionLocal()

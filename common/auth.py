@@ -9,6 +9,7 @@ api_key_header = APIKeyHeader(
     auto_error=False
 )
 
+
 def get_api_key(api_key: str = Depends(api_key_header)):
     if not API_KEY or api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")

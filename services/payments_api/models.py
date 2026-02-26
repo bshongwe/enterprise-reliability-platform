@@ -1,5 +1,6 @@
 from pydantic import BaseModel, validator
 
+
 class PaymentRequest(BaseModel):
     sender_account: str
     receiver_account: str
@@ -19,6 +20,7 @@ class PaymentRequest(BaseModel):
         if v not in allowed:
             raise ValueError(f"Currency must be one of {allowed}")
         return v
+
 
 class PaymentResponse(BaseModel):
     payment_id: str
