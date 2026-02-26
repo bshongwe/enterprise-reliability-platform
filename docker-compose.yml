@@ -1,15 +1,6 @@
 version: '3.8'
 
 services:
-  account-service:
-    build:
-      context: .
-      dockerfile: services/account_service/Dockerfile
-    ports:
-      - "127.0.0.1:8002:8002"
-    environment:
-      - API_KEY=${API_KEY}
-
   prometheus:
     image: prom/prometheus:latest
     ports:
@@ -34,7 +25,7 @@ services:
       context: .
       dockerfile: services/payments_api/Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - API_KEY=${API_KEY}
       - LEDGER_URL=http://ledger-service:8001
