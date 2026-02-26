@@ -34,6 +34,7 @@ class LedgerEntry(Base):
     reference = Column(String)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
+
 Base.metadata.create_all(bind=engine)
 
 
