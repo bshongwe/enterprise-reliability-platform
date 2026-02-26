@@ -29,10 +29,10 @@ jobs:
     steps:
       - name: Check Error Budget
         id: budget_check
+        env:
+          PROM_URL: ${{ secrets.PROMETHEUS_URL }}
+          SERVICE: ${{ github.event.inputs.service || 'payments' }}
         run: |
-          PROM_URL="${{ secrets.PROMETHEUS_URL }}"
-          SERVICE="${{ github.event.inputs.service || 'payments' }}"
-          
           QUERY="1 - (sum(rate(http_requests_total{service=\"${SERVICE}\",status=\"success\"}[1h])) / sum(rate(http_requests_total{service=\"${SERVICE}\"}[1h])))"
           
           BURN_RATE=$(curl -s "${PROM_URL}/api/v1/query?query=${QUERY}" | jq -r '.data.result[0].value[1]')
@@ -61,13 +61,16 @@ jobs:
 
       - name: Check if service changed
         id: check
+        env:
+          SERVICE: ${{ matrix.service }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SERVICE: ${{ github.event.inputs.service }}
         run: |
-          SERVICE="${{ matrix.service }}"
           SERVICE_DIR=$(echo $SERVICE | tr '-' '_')
           
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             # Manual trigger - only build selected service
-            if [ "$SERVICE" = "${{ github.event.inputs.service }}" ]; then
+            if [ "$SERVICE" = "$INPUT_SERVICE" ]; then
               echo "build=true" >> $GITHUB_OUTPUT
               echo "✅ Building $SERVICE (manual trigger)"
             else
@@ -96,10 +99,13 @@ jobs:
 
       - name: Build and push Docker image
         if: steps.check.outputs.build == 'true'
+        env:
+          SERVICE: ${{ matrix.service }}
+          TAG: ${{ github.sha }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
         run: |
-          SERVICE="${{ matrix.service }}"
-          TAG="${{ github.sha }}"
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG}"
+          IMAGE="ghcr.io/${REPO_OWNER}/${SERVICE}:${TAG}"
           
           # Convert service name to directory name
           SERVICE_DIR=$(echo $SERVICE | tr '-' '_')
@@ -112,7 +118,7 @@ jobs:
           docker push ${IMAGE}
           
           echo "✅ Successfully pushed ${IMAGE}"
-          echo "View at: https://github.com/${{ github.repository }}/pkgs/container/${SERVICE}"
+          echo "View at: https://github.com/${REPO}/pkgs/container/${SERVICE}"
 
   update-manifests:
     needs: build-and-push
@@ -127,10 +133,14 @@ jobs:
 
       - name: Detect changed service
         id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SERVICE: ${{ github.event.inputs.service }}
+          INPUT_TYPE: ${{ github.event.inputs.deployment_type }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            SERVICE="${{ github.event.inputs.service }}"
-            TYPE="${{ github.event.inputs.deployment_type }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            SERVICE="$INPUT_SERVICE"
+            TYPE="$INPUT_TYPE"
           else
             # Auto-detect service from changed files
             CHANGED=$(git diff --name-only HEAD^ HEAD)
@@ -152,29 +162,31 @@ jobs:
 
       - name: Update image tag
         if: steps.detect.outputs.service != ''
+        env:
+          SERVICE: ${{ steps.detect.outputs.service }}
+          TYPE: ${{ steps.detect.outputs.type }}
+          SHA: ${{ github.sha }}
         run: |
-          SERVICE="${{ steps.detect.outputs.service }}"
-          TYPE="${{ steps.detect.outputs.type }}"
-          
           if [ "$TYPE" = "canary" ]; then
             FILE="k8s/${SERVICE}/canary.yaml"
-            TAG="canary-${{ github.sha }}"
+            TAG="canary-${SHA}"
             sed -i "s|image: ghcr.io/bshongwe/${SERVICE}:canary|image: ghcr.io/bshongwe/${SERVICE}:${TAG}|" $FILE
           else
             FILE="k8s/${SERVICE}/deployment.yaml"
-            TAG="${{ github.sha }}"
+            TAG="${SHA}"
             sed -i "s|image: ghcr.io/bshongwe/${SERVICE}:v.*|image: ghcr.io/bshongwe/${SERVICE}:${TAG}|" $FILE
           fi
 
       - name: Commit and push
         if: steps.detect.outputs.service != ''
+        env:
+          SERVICE: ${{ steps.detect.outputs.service }}
+          SHA: ${{ github.sha }}
         run: |
-          SERVICE="${{ steps.detect.outputs.service }}"
-          
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add k8s/
-          git commit -m "Deploy ${SERVICE} - ${{ github.sha }}" || echo "No changes"
+          git commit -m "Deploy ${SERVICE} - ${SHA}" || echo "No changes"
           git push || echo "Nothing to push"
 
   monitor-canary:
@@ -187,10 +199,10 @@ jobs:
 
       - name: Check canary health
         id: health_check
+        env:
+          SERVICE: ${{ needs.update-manifests.outputs.service }}
+          PROM_URL: ${{ secrets.PROMETHEUS_URL }}
         run: |
-          SERVICE="${{ needs.update-manifests.outputs.service }}"
-          PROM_URL="${{ secrets.PROMETHEUS_URL }}"
-          
           ERROR_RATE=$(curl -s "${PROM_URL}/api/v1/query?query=sum(rate(http_requests_total{service=\"${SERVICE}\",version=\"canary\",status=\"error\"}[5m]))/sum(rate(http_requests_total{service=\"${SERVICE}\",version=\"canary\"}[5m]))" | jq -r '.data.result[0].value[1]')
           
           if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
