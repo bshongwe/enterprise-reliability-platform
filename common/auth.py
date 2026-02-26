@@ -16,4 +16,4 @@ def get_api_key(api_key: str = Depends(api_key_header)):
     if not API_KEY or api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
     # Return a sanitized identifier for logging/audit purposes
-    return pwd_context.hash(api_key)[:16]
+    return pwd_context.hash(api_key[:72])[:16]
