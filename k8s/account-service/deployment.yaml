@@ -32,8 +32,6 @@ spec:
         ports:
         - containerPort: 8002
           name: http
-        - containerPort: 8002
-          name: metrics
         env:
         - name: API_KEY
           valueFrom:
