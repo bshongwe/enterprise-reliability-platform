@@ -52,7 +52,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        service: [payments-api, ledger-service]
+        service: [payments-api, ledger-service, account-service]
     steps:
       - uses: actions/checkout@v4
         with:
