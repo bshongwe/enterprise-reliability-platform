@@ -3,13 +3,13 @@
 from fastapi import FastAPI, HTTPException, Depends
 from typing import List, Annotated
 from prometheus_client import make_asgi_app
-from services.ledger_service.models import (
+from models import (
     LedgerEntryCreate,
     LedgerEntryResponse
 )
 from common.auth import get_api_key
 from common.metrics import http_requests_total, db_operations_total
-from services.ledger_service.service import (
+from service import (
     create_ledger_entry,
     get_entries_by_payment
 )

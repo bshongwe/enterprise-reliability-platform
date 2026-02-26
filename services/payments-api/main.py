@@ -3,13 +3,13 @@
 from fastapi import FastAPI, HTTPException, Depends
 from typing import Annotated
 from prometheus_client import make_asgi_app
-from services.payments_api.models import (
+from models import (
     PaymentRequest,
     PaymentResponse
 )
 from common.auth import get_api_key
 from common.metrics import http_requests_total
-from services.payments_api.service import (
+from service import (
     create_payment_record,
     get_payment_record
 )

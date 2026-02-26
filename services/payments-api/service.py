@@ -1,6 +1,6 @@
 import os
 import httpx
-from services.payments_api.models import PaymentRequest
+from models import PaymentRequest
 from common.audit import audit_log
 
 LEDGER_URL = os.getenv("LEDGER_URL", "http://localhost:8001")
