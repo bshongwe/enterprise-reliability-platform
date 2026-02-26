@@ -27,7 +27,7 @@ EHRP is a **production-grade SRE demonstration** built to mimic real-world corpo
 ## 📦 Repo Structure
 
 ```
-enterprise-hybrid-sre-platform/
+enterprise-reliability-platform/
 ├── architecture/
 ├── services/
 ├── infra/
