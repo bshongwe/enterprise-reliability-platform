@@ -7,8 +7,7 @@ from services.account_service.models import (
     AccountCreate,
     AccountResponse,
     AccountUpdate,
-    BalanceUpdate,
-    AccountStatus
+    BalanceUpdate
 )
 from common.auth import get_api_key
 from common.metrics import http_requests_total
@@ -172,5 +171,60 @@ def get_user_accounts_endpoint(
             service="account",
             method="GET",
             endpoint="/users/{user_id}/accounts",
+            status=status
+        ).inc()
+
+
+@app.patch(
+    "/accounts/{account_id}",
+    response_model=AccountResponse,
+    responses={
+        404: {"description": "Account not found"},
+        500: {"description": "Internal server error"}
+    },
+    dependencies=[Depends(get_api_key)]
+)
+def update_account_endpoint(
+    account_id: str,
+    account_update: AccountUpdate,
+    user_id: Annotated[str, Depends(get_api_key)]
+):
+    status = "success"
+    try:
+        account = get_account(account_id, user_id)
+        if not account:
+            status = "not_found"
+            raise HTTPException(
+                status_code=404,
+                detail="Account not found"
+            )
+        # Update account status if provided
+        if account_update.status:
+            from services.account_service.service import SessionLocal
+            db = SessionLocal()
+            try:
+                db_account = db.query(
+                    type(account)
+                ).filter_by(account_id=account_id).first()
+                db_account.status = account_update.status
+                db.commit()
+                db.refresh(db_account)
+                account = db_account
+            finally:
+                db.close()
+        return account
+    except HTTPException:
+        raise
+    except Exception:
+        status = "error"
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
+    finally:
+        http_requests_total.labels(
+            service="account",
+            method="PATCH",
+            endpoint="/accounts/{account_id}",
             status=status
         ).inc()
