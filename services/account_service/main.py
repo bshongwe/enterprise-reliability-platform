@@ -23,6 +23,9 @@ app = FastAPI(
     description="Manages user accounts and balances."
 )
 
+ACCOUNT_NOT_FOUND_MSG = "Account not found"
+INTERNAL_SERVER_ERROR_MSG = "Internal server error"
+
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
@@ -50,7 +53,7 @@ def create_account_endpoint(
         status = "error"
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            detail=INTERNAL_SERVER_ERROR_MSG
         )
     finally:
         http_requests_total.labels(
@@ -81,7 +84,7 @@ def get_account_endpoint(
             status = "not_found"
             raise HTTPException(
                 status_code=404,
-                detail="Account not found"
+                detail=ACCOUNT_NOT_FOUND_MSG
             )
         return account
     except HTTPException:
@@ -90,7 +93,7 @@ def get_account_endpoint(
         status = "error"
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            detail=INTERNAL_SERVER_ERROR_MSG
         )
     finally:
         http_requests_total.labels(
@@ -123,7 +126,7 @@ def update_balance_endpoint(
             status = "not_found"
             raise HTTPException(
                 status_code=404,
-                detail="Account not found"
+                detail=ACCOUNT_NOT_FOUND_MSG
             )
         return account
     except ValueError as e:
@@ -135,7 +138,7 @@ def update_balance_endpoint(
         status = "error"
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            detail=INTERNAL_SERVER_ERROR_MSG
         )
     finally:
         http_requests_total.labels(
@@ -164,7 +167,7 @@ def get_user_accounts_endpoint(
         status = "error"
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            detail=INTERNAL_SERVER_ERROR_MSG
         )
     finally:
         http_requests_total.labels(
@@ -196,7 +199,7 @@ def update_account_endpoint(
             status = "not_found"
             raise HTTPException(
                 status_code=404,
-                detail="Account not found"
+                detail=ACCOUNT_NOT_FOUND_MSG
             )
         # Update account status if provided
         if account_update.status:
@@ -219,7 +222,7 @@ def update_account_endpoint(
         status = "error"
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            detail=INTERNAL_SERVER_ERROR_MSG
         )
     finally:
         http_requests_total.labels(
