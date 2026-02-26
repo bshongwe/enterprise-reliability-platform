@@ -39,14 +39,16 @@ jobs:
     steps:
       - name: Check Error Budget
         id: error_budget
+        env:
+          PROM_URL: ${{ secrets.PROMETHEUS_URL }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          if [ -z "${{ secrets.PROMETHEUS_URL }}" ]; then
+          if [ -z "$PROM_URL" ]; then
             echo "PROMETHEUS_URL not configured, skipping check"
             exit 0
           fi
           
-          PROM_URL="${{ secrets.PROMETHEUS_URL }}"
-          SERVICE="${{ github.event.repository.name }}"
+          SERVICE="$REPO_NAME"
           
           QUERY="1 - (sum(rate(http_requests_total{service=\"${SERVICE}\",status=\"success\"}[1h])) / sum(rate(http_requests_total{service=\"${SERVICE}\"}[1h])))"
           
