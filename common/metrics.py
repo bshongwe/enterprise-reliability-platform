@@ -44,7 +44,7 @@ def track_request(service: str):
             try:
                 result = await func(*args, **kwargs)
                 return result
-            except Exception as e:
+            except Exception as Exception:
                 status = "error"
                 raise
             finally:
