@@ -13,3 +13,4 @@ def audit_log(user, action, entity_id, status, extra=None):
     if extra:
         msg += f" {extra}"
     logging.info(msg)
+    return True
