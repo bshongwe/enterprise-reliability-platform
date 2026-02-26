@@ -9,7 +9,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import datetime
-from .models import LedgerEntryCreate
+from services.ledger_service.models import LedgerEntryCreate
 from common.audit import audit_log
 from common.metrics import db_operations_total
 

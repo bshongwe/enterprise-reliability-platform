@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 
 from fastapi import FastAPI, HTTPException, Depends
-from typing import Annotated
+from typing import List, Annotated
 from prometheus_client import make_asgi_app
-from .models import (
-    PaymentRequest,
-    PaymentResponse
+from services.ledger_service.models import (
+    LedgerEntryCreate,
+    LedgerEntryResponse
 )
 from common.auth import get_api_key
-from common.metrics import http_requests_total
-from .service import (
-    create_payment_record,
-    get_payment_record
+from common.metrics import http_requests_total, db_operations_total
+from services.ledger_service.service import (
+    create_ledger_entry,
+    get_entries_by_payment
 )
 
-
 app = FastAPI(
-    title="Payments API",
-    description="Handles payment initiation and orchestration."
+    title="Ledger Service",
+    description="Immutable transaction ledger for payments."
 )
 
 metrics_app = make_asgi_app()
@@ -28,26 +27,19 @@ def health_check():
     return {"status": "ok"}
 
 @app.post(
-    "/payments",
-    response_model=PaymentResponse,
+    "/entries",
+    response_model=LedgerEntryResponse,
     dependencies=[Depends(get_api_key)],
     responses={500: {"description": "Internal server error"}}
 )
-def create_payment(
-    payment: PaymentRequest,
+def create_ledger_entry_endpoint(
+    entry: LedgerEntryCreate,
     user_id: Annotated[str, Depends(get_api_key)]
 ):
     status = "success"
     try:
-        payment_id, pmt_status, message = create_payment_record(
-            payment,
-            user_id
-        )
-        return PaymentResponse(
-            payment_id=payment_id,
-            status=pmt_status,
-            message=message
-        )
+        db_entry = create_ledger_entry(entry, user_id)
+        return db_entry
     except Exception:
         status = "error"
         raise HTTPException(
@@ -56,39 +48,37 @@ def create_payment(
         )
     finally:
         http_requests_total.labels(
-            service="payments",
+            service="ledger",
             method="POST",
-            endpoint="/payments",
+            endpoint="/entries",
             status=status
         ).inc()
 
 @app.get(
-    "/payments/{payment_id}",
-    response_model=PaymentResponse,
+    "/entries/{payment_id}",
+    response_model=List[LedgerEntryResponse],
     responses={
-        404: {"description": "Payment not found"},
+        404: {
+            "description": "No ledger entries found for this payment_id"
+        },
         500: {"description": "Internal server error"}
     },
     dependencies=[Depends(get_api_key)]
 )
-def get_payment(
+def get_entries_by_payment_endpoint(
     payment_id: str,
     user_id: Annotated[str, Depends(get_api_key)]
 ):
     status = "success"
     try:
-        payment = get_payment_record(payment_id, user_id)
-        if not payment:
+        entries = get_entries_by_payment(payment_id, user_id)
+        if not entries:
             status = "not_found"
             raise HTTPException(
                 status_code=404,
-                detail="Payment not found"
+                detail="No ledger entries found for this payment_id"
             )
-        return PaymentResponse(
-            payment_id=payment_id,
-            status=payment["status"],
-            message="Payment status fetched."
-        )
+        return entries
     except HTTPException:
         raise
     except Exception:
@@ -99,8 +89,8 @@ def get_payment(
         )
     finally:
         http_requests_total.labels(
-            service="payments",
+            service="ledger",
             method="GET",
-            endpoint="/payments/{payment_id}",
+            endpoint="/entries/{payment_id}",
             status=status
         ).inc()
