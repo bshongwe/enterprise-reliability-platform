@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-service
+  labels:
+    app: ledger-service
+    version: stable
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ledger-service
+      version: stable
+  template:
+    metadata:
+      labels:
+        app: ledger-service
+        version: stable
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: ledger-service
+        image: ghcr.io/bshongwe/ledger-service:v1.0.0
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+            ephemeral-storage: "5Gi"
+          limits:
+            memory: "1Gi"
+            ephemeral-storage: "10Gi"
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: api-key
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8001
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-service
+  labels:
+    app: ledger-service
+spec:
+  selector:
+    app: ledger-service
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: http

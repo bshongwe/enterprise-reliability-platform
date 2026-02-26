@@ -1,8 +1,7 @@
 from pydantic import BaseModel, validator
-import datetime
 
-class LedgerEntryCreate(BaseModel):
-    payment_id: str
+
+class PaymentRequest(BaseModel):
     sender_account: str
     receiver_account: str
     amount: float
@@ -22,12 +21,8 @@ class LedgerEntryCreate(BaseModel):
             raise ValueError(f"Currency must be one of {allowed}")
         return v
 
-class LedgerEntryResponse(BaseModel):
-    id: int
+
+class PaymentResponse(BaseModel):
     payment_id: str
-    sender_account: str
-    receiver_account: str
-    amount: float
-    currency: str
-    reference: str
-    timestamp: datetime.datetime
+    status: str
+    message: str

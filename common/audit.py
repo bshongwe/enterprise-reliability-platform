@@ -5,6 +5,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s'
 )
 
+
 def audit_log(user, action, entity_id, status, extra=None):
     msg = (
         f"AUDIT: user={user} action={action} "
@@ -13,3 +14,4 @@ def audit_log(user, action, entity_id, status, extra=None):
     if extra:
         msg += f" {extra}"
     logging.info(msg)
+    return True

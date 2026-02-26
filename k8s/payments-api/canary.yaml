@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-api-canary
+  labels:
+    app: payments-api
+    version: canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payments-api
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: payments-api
+        version: canary
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: payments-api
+        image: ghcr.io/bshongwe/payments-api:canary
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "512Mi"
+            ephemeral-storage: "2Gi"
+        ports:
+        - containerPort: 8000
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: api-key
+        - name: LEDGER_URL
+          value: "http://ledger-service:8001"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000

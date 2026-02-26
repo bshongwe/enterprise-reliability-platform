@@ -1,0 +1,101 @@
+name: CD - GitOps Deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        type: choice
+        options:
+          - payments-api
+          - ledger-service
+      deployment_type:
+        description: 'Deployment type'
+        required: true
+        type: choice
+        options:
+          - canary
+          - production
+
+jobs:
+  check-error-budget:
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.budget_check.outputs.can_deploy }}
+    steps:
+      - name: Check Error Budget
+        id: budget_check
+        run: |
+          PROM_URL="${{ secrets.PROMETHEUS_URL }}"
+          SERVICE="${{ github.event.inputs.service || 'payments' }}"
+          
+          QUERY="1 - (sum(rate(http_requests_total{service=\"${SERVICE}\",status=\"success\"}[1h])) / sum(rate(http_requests_total{service=\"${SERVICE}\"}[1h])))"
+          
+          BURN_RATE=$(curl -s "${PROM_URL}/api/v1/query?query=${QUERY}" | jq -r '.data.result[0].value[1]')
+          
+          if (( $(echo "$BURN_RATE > 0.00072" | bc -l) )); then
+            echo "can_deploy=false" >> $GITHUB_OUTPUT
+            echo "::error::Deployment blocked - burning >50% error budget"
+            exit 1
+          fi
+          
+          echo "can_deploy=true" >> $GITHUB_OUTPUT
+
+  update-manifests:
+    needs: check-error-budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update image tag
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          TYPE="${{ github.event.inputs.deployment_type || 'production' }}"
+          
+          if [ "$TYPE" = "canary" ]; then
+            FILE="k8s/${SERVICE}/canary.yaml"
+            TAG="canary-${{ github.sha }}"
+            sed -i "s|image: ghcr.io/bshongwe/${SERVICE}:canary|image: ghcr.io/bshongwe/${SERVICE}:${TAG}|" $FILE
+          else
+            FILE="k8s/${SERVICE}/deployment.yaml"
+            TAG="${{ github.sha }}"
+            sed -i "s|image: ghcr.io/bshongwe/${SERVICE}:v.*|image: ghcr.io/bshongwe/${SERVICE}:${TAG}|" $FILE
+          fi
+
+      - name: Commit and push
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add k8s/
+          git commit -m "Deploy ${{ github.event.inputs.service }} - ${{ github.sha }}"
+          git push
+
+  monitor-canary:
+    needs: update-manifests
+    if: github.event.inputs.deployment_type == 'canary'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for canary deployment
+        run: sleep 300
+
+      - name: Check canary health
+        id: health_check
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          PROM_URL="${{ secrets.PROMETHEUS_URL }}"
+          
+          ERROR_RATE=$(curl -s "${PROM_URL}/api/v1/query?query=sum(rate(http_requests_total{service=\"${SERVICE}\",version=\"canary\",status=\"error\"}[5m]))/sum(rate(http_requests_total{service=\"${SERVICE}\",version=\"canary\"}[5m]))" | jq -r '.data.result[0].value[1]')
+          
+          if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+            echo "::error::Canary failed - error rate ${ERROR_RATE}"
+            exit 1
+          fi
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          git revert HEAD --no-edit
+          git push
