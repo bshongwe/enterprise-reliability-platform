@@ -70,7 +70,14 @@ jobs:
               SERVICE=""
             fi
           fi
-          echo "service=$SERVICE" >> $GITHUB_OUTPUT
+          
+          if [ -n "$SERVICE" ]; then
+            echo "service=$SERVICE" >> $GITHUB_OUTPUT
+            echo "✅ Detected service to build: $SERVICE"
+          else
+            echo "service=" >> $GITHUB_OUTPUT
+            echo "ℹ️ No service changes detected, skipping build"
+          fi
 
       - name: Log in to GitHub Container Registry
         if: steps.detect.outputs.service != ''
@@ -85,10 +92,16 @@ jobs:
         run: |
           SERVICE="${{ steps.detect.outputs.service }}"
           TAG="${{ github.sha }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG}"
           
-          docker build -t ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG} \
-            -f services/${SERVICE}/Dockerfile .
-          docker push ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG}
+          echo "Building Docker image: ${IMAGE}"
+          docker build -t ${IMAGE} -f services/${SERVICE}/Dockerfile .
+          
+          echo "Pushing image to GitHub Container Registry..."
+          docker push ${IMAGE}
+          
+          echo "✅ Successfully pushed ${IMAGE}"
+          echo "View at: https://github.com/${{ github.repository }}/pkgs/container/${SERVICE}"
 
   update-manifests:
     needs: build-and-push
