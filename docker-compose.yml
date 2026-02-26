@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/alerts:/etc/prometheus/alerts
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./observability/grafana-slo-dashboard.json:/etc/grafana/provisioning/dashboards/slo.json
+
+  payments-api:
+    build:
+      context: .
+      dockerfile: services/payments-api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=${API_KEY}
+      - LEDGER_URL=http://ledger-service:8001
+
+  ledger-service:
+    build:
+      context: .
+      dockerfile: services/ledger-service/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - API_KEY=${API_KEY}
