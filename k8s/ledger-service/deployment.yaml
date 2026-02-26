@@ -17,9 +17,18 @@ spec:
         app: ledger-service
         version: stable
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: ledger-service
-        image: ghcr.io/your-org/ledger-service:latest
+        image: ghcr.io/bshongwe/ledger-service:v1.0.0
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+            ephemeral-storage: "5Gi"
+          limits:
+            memory: "1Gi"
+            ephemeral-storage: "10Gi"
         ports:
         - containerPort: 8001
           name: http

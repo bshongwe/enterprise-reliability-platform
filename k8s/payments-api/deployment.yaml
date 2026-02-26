@@ -17,9 +17,18 @@ spec:
         app: payments-api
         version: stable
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: payments-api
-        image: ghcr.io/your-org/payments-api:latest
+        image: ghcr.io/bshongwe/payments-api:v1.0.0
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "512Mi"
+            ephemeral-storage: "2Gi"
         ports:
         - containerPort: 8000
           name: http

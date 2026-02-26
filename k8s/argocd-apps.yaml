@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/enterprise-reliability-platform
+    repoURL: https://github.com/bshongwe/enterprise-reliability-platform
     targetRevision: main
     path: k8s/payments-api
   destination:
@@ -33,7 +33,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/enterprise-reliability-platform
+    repoURL: https://github.com/bshongwe/enterprise-reliability-platform
     targetRevision: main
     path: k8s/ledger-service
   destination:

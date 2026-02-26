@@ -58,12 +58,12 @@ jobs:
           if [ "$TYPE" = "canary" ]; then
             FILE="k8s/${SERVICE}/canary.yaml"
             TAG="canary-${{ github.sha }}"
+            sed -i "s|image: ghcr.io/bshongwe/${SERVICE}:canary|image: ghcr.io/bshongwe/${SERVICE}:${TAG}|" $FILE
           else
             FILE="k8s/${SERVICE}/deployment.yaml"
             TAG="${{ github.sha }}"
+            sed -i "s|image: ghcr.io/bshongwe/${SERVICE}:v.*|image: ghcr.io/bshongwe/${SERVICE}:${TAG}|" $FILE
           fi
-          
-          sed -i "s|image: ghcr.io/.*|image: ghcr.io/${{ github.repository }}/${SERVICE}:${TAG}|" $FILE
 
       - name: Commit and push
         run: |
