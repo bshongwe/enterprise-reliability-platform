@@ -44,8 +44,54 @@ jobs:
           
           echo "can_deploy=true" >> $GITHUB_OUTPUT
 
-  update-manifests:
+  build-and-push:
     needs: check-error-budget
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed service
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SERVICE="${{ github.event.inputs.service }}"
+          else
+            CHANGED=$(git diff --name-only HEAD^ HEAD)
+            if echo "$CHANGED" | grep -q "services/payments_api/"; then
+              SERVICE="payments-api"
+            elif echo "$CHANGED" | grep -q "services/ledger_service/"; then
+              SERVICE="ledger-service"
+            else
+              SERVICE=""
+            fi
+          fi
+          echo "service=$SERVICE" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        if: steps.detect.outputs.service != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        if: steps.detect.outputs.service != ''
+        run: |
+          SERVICE="${{ steps.detect.outputs.service }}"
+          TAG="${{ github.sha }}"
+          
+          docker build -t ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG} \
+            -f services/${SERVICE}/Dockerfile .
+          docker push ghcr.io/${{ github.repository_owner }}/${SERVICE}:${TAG}
+
+  update-manifests:
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
