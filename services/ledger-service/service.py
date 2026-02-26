@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 import datetime
 from services.ledger_service.models import LedgerEntryCreate
 from common.audit import audit_log
+from common.metrics import db_operations_total
 
 DATABASE_URL = "sqlite:///./ledger.db"
 engine = create_engine(
@@ -41,10 +42,20 @@ def create_ledger_entry(entry: LedgerEntryCreate, user: str):
         db.add(db_entry)
         db.commit()
         db.refresh(db_entry)
+        db_operations_total.labels(
+            service="ledger",
+            operation="write",
+            status="success"
+        ).inc()
         audit_log(user, "create_ledger_entry", entry.payment_id, "success")
         return db_entry
     except Exception as e:
         db.rollback()
+        db_operations_total.labels(
+            service="ledger",
+            operation="write",
+            status="error"
+        ).inc()
         audit_log(
             user, "create_ledger_entry", entry.payment_id, "fail",
             f"error={type(e).__name__}"
