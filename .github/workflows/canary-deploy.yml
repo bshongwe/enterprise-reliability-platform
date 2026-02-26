@@ -49,11 +49,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed service
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SERVICE="${{ github.event.inputs.service }}"
+            TYPE="${{ github.event.inputs.deployment_type }}"
+          else
+            # Auto-detect service from changed files
+            CHANGED=$(git diff --name-only HEAD^ HEAD)
+            if echo "$CHANGED" | grep -q "services/payments_api/"; then
+              SERVICE="payments-api"
+            elif echo "$CHANGED" | grep -q "services/ledger_service/"; then
+              SERVICE="ledger-service"
+            else
+              SERVICE=""
+            fi
+            TYPE="production"
+          fi
+          
+          echo "service=$SERVICE" >> $GITHUB_OUTPUT
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "Detected service: $SERVICE, type: $TYPE"
 
       - name: Update image tag
+        if: steps.detect.outputs.service != ''
         run: |
-          SERVICE="${{ github.event.inputs.service }}"
-          TYPE="${{ github.event.inputs.deployment_type || 'production' }}"
+          SERVICE="${{ steps.detect.outputs.service }}"
+          TYPE="${{ steps.detect.outputs.type }}"
           
           if [ "$TYPE" = "canary" ]; then
             FILE="k8s/${SERVICE}/canary.yaml"
@@ -66,12 +92,15 @@ jobs:
           fi
 
       - name: Commit and push
+        if: steps.detect.outputs.service != ''
         run: |
+          SERVICE="${{ steps.detect.outputs.service }}"
+          
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add k8s/
-          git commit -m "Deploy ${{ github.event.inputs.service }} - ${{ github.sha }}"
-          git push
+          git commit -m "Deploy ${SERVICE} - ${{ github.sha }}" || echo "No changes"
+          git push || echo "Nothing to push"
 
   monitor-canary:
     needs: update-manifests
