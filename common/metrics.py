@@ -1,6 +1,9 @@
 from prometheus_client import Counter, Histogram, Gauge
 import time
+import logging
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 # Request metrics
 http_requests_total = Counter(
@@ -44,8 +47,9 @@ def track_request(service: str):
             try:
                 result = await func(*args, **kwargs)
                 return result
-            except Exception as Exception:
+            except Exception as e:
                 status = "error"
+                logger.error(f"Request failed in {func.__name__}: {e}")
                 raise
             finally:
                 duration = time.time() - start
