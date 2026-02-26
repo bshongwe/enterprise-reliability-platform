@@ -32,7 +32,13 @@ def create_payment_record(payment: PaymentRequest, user: str):
         return payment_id, "RECORDED", "Payment recorded in ledger."
     except Exception as e:
         payments_db[payment_id]["status"] = "FAILED"
-        audit_log(user, "create_payment", payment_id, "fail", f"error={type(e).__name__}")
+        audit_log(
+            user,
+            "create_payment",
+            payment_id,
+            "fail",
+            f"error={type(e).__name__}"
+        )
         raise
 
 def get_payment_record(payment_id: str, user: str):
