@@ -1,3 +1,4 @@
+import uuid
 from services.notification_api.models import NotificationRequest
 from common.audit import audit_log
 
@@ -5,7 +6,7 @@ notifications_db = {}
 
 
 def send_notification(notification: NotificationRequest, user: str):
-    notification_id = f"notif_{len(notifications_db)+1}"
+    notification_id = f"notif_{uuid.uuid4().hex[:12]}"
 
     notifications_db[notification_id] = {
         **notification.dict(),
