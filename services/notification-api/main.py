@@ -19,9 +19,11 @@ app = FastAPI(
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
+
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
+
 
 @app.post(
     "/notifications",
