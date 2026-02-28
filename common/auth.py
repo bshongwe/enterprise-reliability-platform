@@ -18,10 +18,10 @@ def get_api_key(api_key: str = Depends(api_key_header)):
         if api_key == "test-key":
             return api_key[:16]
         raise HTTPException(status_code=401, detail="Unauthorized")
-    
+
     if not api_key:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    
+
     try:
         ph.verify(API_KEY_HASH, api_key)
         return api_key[:16]
