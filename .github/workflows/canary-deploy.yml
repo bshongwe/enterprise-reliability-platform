@@ -13,6 +13,7 @@ on:
           - payments-api
           - ledger-service
           - account-service
+          - notification-api
       deployment_type:
         description: 'Deployment type'
         required: true
@@ -53,7 +54,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        service: [payments-api, ledger-service, account-service]
+        service: [payments-api, ledger-service, account-service, notification-api]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -150,6 +151,8 @@ jobs:
               SERVICE="ledger-service"
             elif echo "$CHANGED" | grep -q "services/account_service/"; then
               SERVICE="account-service"
+            elif echo "$CHANGED" | grep -q "services/notification_api/"; then
+              SERVICE="notification-api"
             else
               SERVICE=""
             fi
