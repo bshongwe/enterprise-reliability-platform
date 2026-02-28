@@ -1,0 +1,20 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: ledger-network-latency
+  namespace: production
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - production
+    labelSelectors:
+      app: ledger-service
+  delay:
+    latency: '100ms'
+    correlation: '100'
+    jitter: '10ms'
+  duration: '5m'
+  scheduler:
+    cron: '@daily'
