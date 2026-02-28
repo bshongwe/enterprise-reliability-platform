@@ -46,12 +46,12 @@ def send_notification_endpoint(
             status=delivery_status,
             message="Notification sent"
         )
-    except Exception:
+    except Exception as e:
         status = "error"
         raise HTTPException(
             status_code=500,
             detail="Internal server error"
-        )
+        ) from e
     finally:
         http_requests_total.labels(
             service="notification",
