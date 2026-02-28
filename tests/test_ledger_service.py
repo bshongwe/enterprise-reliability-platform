@@ -29,3 +29,18 @@ def test_create_entry_unauthorized():
 def test_get_entries_unauthorized():
     response = client.get("/entries/pay_1")
     assert response.status_code == 401
+
+def test_create_entry_invalid_amount():
+    response = client.post(
+        "/entries",
+        json={
+            "payment_id": "pay_2",
+            "sender_account": "ACC001",
+            "receiver_account": "ACC002",
+            "amount": 0,
+            "currency": "USD",
+            "reference": "TEST002"
+        },
+        headers={"X-API-Key": "test-key"}
+    )
+    assert response.status_code == 422
