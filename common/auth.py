@@ -20,5 +20,9 @@ def get_api_key(api_key: str = Depends(api_key_header)):
         ph.verify(API_KEY_HASH, api_key)
         # Return first 16 chars of key for audit (not the hash)
         return api_key[:16]
-    except (VerifyMismatchError, Exception):
+    except VerifyMismatchError:
+        # Log or audit failed verification if needed
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    except Exception:
+        # Log unexpected errors for security monitoring
         raise HTTPException(status_code=401, detail="Unauthorized")
