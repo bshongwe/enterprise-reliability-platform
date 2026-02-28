@@ -38,3 +38,31 @@ def test_create_payment_authorized():
         headers={"X-API-Key": "test-key"}
     )
     assert response.status_code in [200, 500]
+
+def test_invalid_currency():
+    response = client.post(
+        "/payments",
+        json={
+            "sender_account": "ACC001",
+            "receiver_account": "ACC002",
+            "amount": 100.0,
+            "currency": "INVALID",
+            "reference": "TEST002"
+        },
+        headers={"X-API-Key": "test-key"}
+    )
+    assert response.status_code == 422
+
+def test_negative_amount():
+    response = client.post(
+        "/payments",
+        json={
+            "sender_account": "ACC001",
+            "receiver_account": "ACC002",
+            "amount": -50.0,
+            "currency": "USD",
+            "reference": "TEST003"
+        },
+        headers={"X-API-Key": "test-key"}
+    )
+    assert response.status_code == 422

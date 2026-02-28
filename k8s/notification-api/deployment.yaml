@@ -30,7 +30,7 @@ spec:
             memory: "256Mi"
             ephemeral-storage: "1Gi"
         ports:
-        - containerPort: 8002
+        - containerPort: 8003
           name: http
         env:
         - name: API_KEY
@@ -41,13 +41,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8002
+            port: 8003
           initialDelaySeconds: 10
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 8002
+            port: 8003
           initialDelaySeconds: 5
           periodSeconds: 5
 ---
@@ -61,6 +61,6 @@ spec:
   selector:
     app: notification-api
   ports:
-  - port: 8002
-    targetPort: 8002
+  - port: 8003
+    targetPort: 8003
     name: http
